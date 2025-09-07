@@ -21,6 +21,7 @@ In containerized or service-mesh architectures (Consul, sidecars, etc.), you oft
 - A dynamically chosen distribution port (surfaced via environment or injected config)
 - Discovery based on DNS SRV records rather than explicit host:port lists
 - No dependence on a locally running `epmd` daemon
+- mutualTLS support via the Service Mesh
 
 This library enables exactly that:
 
@@ -69,7 +70,7 @@ Add to `mix.exs`:
 ```elixir
 def deps do
   [
-    {:libcluster_dynamic_srv, "~> 0.1"} # replace with the real version
+    {:libcluster_dynamic_srv, "~> 0.1"}
   ]
 end
 ```
@@ -78,26 +79,14 @@ end
 
 ## Enabling the custom epmd module
 
-Start your release / node with:
+For Elixir applications you can set the following environment variables before starting your application:
 
 ```
-ERL_DIST_PORT=$(allocate_a_port_somehow) \
-elixir \
-  -epmd_module DynamicSrv.Epmd \
-  --name my-node@my-service.service.consul \
-  -S mix run
+export ERL_DIST_PORT=$(allocate_a_port_somehow) \
+export ELIXIR_ERL_OPTIONS="-start_epmd false -epmd_module Elixir.DynamicSrv.Epmd"
+export RELEASE_DISTRIBUTION = "name" # use longnames
+export RELEASE_NODE = "node-0@my-service.service.consul"
 ```
-
-Or for a release (example):
-
-```
-ERL_DIST_PORT=$PORT \
-RELX_VM_ARGS="-epmd_module DynamicSrv.Epmd" \
-_bin/my_app start
-```
-
-If you are using `--sname`, switch to `--name` because fully qualified hostnames are required for DNS-based discovery.
-
 If `ERL_DIST_PORT` is not set, the custom module will raise on startup to avoid silent misconfiguration.
 
 ---
@@ -113,9 +102,6 @@ config :libcluster,
       strategy: Cluster.Strategy.DynamicSrv,
       config: [
         service: "my-service.service.consul",
-        # optional:
-        # polling_interval: 5_000,
-        # resolver: &MyCustom.resolver/1
       ]
     ]
   ]
@@ -123,7 +109,7 @@ config :libcluster,
 
 What the strategy does:
 
-1. Performs periodic SRV lookups for the configured `service` (e.g. `_service._proto.domain` is resolved internally by your DNS layer or Consul abstraction).
+1. Performs periodic SRV lookups for the configured `service` (e.g. `my-service.service.consul` is resolved internally by your DNS layer or Consul abstraction).
 2. Expects SRV targets shaped like `<node-name>.<service-domain>`.
 3. Converts each SRV target into a node atom `:"<node-name>@<service-domain>"`.
 4. Connects to new nodes; disconnects nodes no longer present.
@@ -140,12 +126,6 @@ Produces candidate node names:
 ```
 :"my-node-a@my-service.service.consul"
 :"my-node-b@my-service.service.consul"
-```
-
-Each remote node is expected to also have started with:
-```
--epmd_module DynamicSrv.Epmd
-ERL_DIST_PORT=<its own listen port>
 ```
 
 ---
@@ -180,32 +160,13 @@ This avoids ever calling a real `epmd` daemon.
 
 ---
 
-## Recommended Deployment Pattern (Consul example)
-
-1. Register each service instance in Consul with a service name like `my-service` and a tag or meta value that becomes the node label (`my-node-a`, `my-node-b`, ...).
-2. Ensure Consul generates SRV records whose targets embed that label: `my-node-a.my-service.service.consul`.
-3. Inject a unique `ERL_DIST_PORT` per instance (or have the service pick a free port at boot and export it).
-4. Start the VM with `-epmd_module DynamicSrv.Epmd`.
-5. Let `libcluster` manage membership.
-
----
-
-## Troubleshooting
-
-- Crash: `ERL_DIST_PORT is not set`
-  You forgot to export the env var before starting the VM.
-- Nodes see each other but disconnect frequently
-  Check that SRV TTL + `polling_interval` aren’t causing churn; consider raising `polling_interval`.
-- Node names never connect
-  Verify the constructed atom matches what `node()` returns on peers. Log `node()` on both sides and compare.
-- SRV returns but no connections
-  Ensure your service mesh/firewall allows the dynamic ports.
-
----
-
 ## Security Considerations
 
-You are exposing dynamic distribution ports. Secure Erlang distribution (cookies, TLS, network policy) as you normally would. This library does not add encryption or authentication beyond standard Erlang cookies.
+You are exposing dynamic distribution ports. Secure Erlang distribution
+(cookies, TLS, network policy) as you normally would. This library does not add
+encryption or authentication beyond standard Erlang cookies. However, if you are
+using Consul Connect you can use that to secure communication between nodes with
+mutual TLS. The [example](./examples/app.nomad) does exactly this.
 
 ---
 
@@ -214,31 +175,6 @@ You are exposing dynamic distribution ports. Secure Erlang distribution (cookies
 - Does not implement `names/1` (returns `{:error, :address}`) because no epmd process is running.
 - Assumes IPv4 in `address_please/3` (can be extended to IPv6 if needed).
 - Relies on consistent SRV + A record correctness from DNS.
-
----
-
-## Extensibility
-
-You can provide a custom resolver (for testing or alternative DNS backends):
-
-```elixir
-resolver: fn service_charlist ->
-  # Return a list shaped like: [{priority, weight, port, 'host'}]
-end
-```
-
----
-
-## Summary
-
-libcluster-dynamic-srv lets you:
-
-- Drop the epmd daemon
-- Use a dynamically assigned distribution port
-- Discover and maintain cluster membership via DNS SRV
-- Keep configuration minimal and provider-agnostic
-
-If you run Elixir/Erlang in a dynamic, service-mesh-aware infrastructure, this approach simplifies distribution without giving up the benefits of the BEAM’s built‑in clustering.
 
 ---
 
