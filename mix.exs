@@ -1,7 +1,8 @@
 defmodule LibclusterDynamicSrv.MixProject do
   use Mix.Project
 
-  @version "0.1.3"
+  @version "0.1.4"
+  @source_url "https://github.com/ElixirOSS/libcluster-dynamic-srv"
 
   def project do
     [
@@ -10,6 +11,7 @@ defmodule LibclusterDynamicSrv.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       package: package(),
+      docs: docs(),
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env())
     ]
@@ -38,7 +40,16 @@ defmodule LibclusterDynamicSrv.MixProject do
       name: :libcluster_dynamic_srv,
       description: "A Dynamic Cluster Strategy and EPMD replacement to support dynamic ports",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/ElixirOSS/libcluster-dynamic-srv"}
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp docs do
+    [
+      extras: ["README.md"],
+      main: "readme",
+      source_url: @source_url,
+      source_ref: @version
     ]
   end
 end
