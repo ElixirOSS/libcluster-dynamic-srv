@@ -84,8 +84,8 @@ For Elixir applications you can set the following environment variables before s
 ```
 export ERL_DIST_PORT=$(allocate_a_port_somehow) \
 export ELIXIR_ERL_OPTIONS="-start_epmd false -epmd_module Elixir.DynamicSrv.Epmd"
-export RELEASE_DISTRIBUTION = "name" # use longnames
-export RELEASE_NODE = "node-0@my-service.service.consul"
+export RELEASE_DISTRIBUTION="name" # use longnames
+export RELEASE_NODE="node-0@my-service.service.consul"
 ```
 If `ERL_DIST_PORT` is not set, the custom module will raise on startup to avoid silent misconfiguration.
 
