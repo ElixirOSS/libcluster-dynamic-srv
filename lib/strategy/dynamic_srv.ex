@@ -46,17 +46,19 @@ defmodule Cluster.Strategy.DynamicSrv do
   end
 
   def init(%State{} = state) do
-    {:ok, do_poll(state)}
+    {:ok, state, {:continue, :poll}}
   end
 
   @impl GenServer
-  def handle_info(:timeout, state), do: handle_info(:poll, state)
+  def handle_continue(:poll, state) do
+    CLogger.debug(state.topology, "Doing initial poll for cluster nodes.")
+    {:noreply, do_poll(state)}
+  end
 
+  @impl GenServer
   def handle_info(:poll, state) do
     CLogger.debug(state.topology, "Polling for new nodes")
-    state = do_poll(state)
-    Process.send_after(self(), :poll, polling_interval(state))
-    {:noreply, state}
+    {:noreply, do_poll(state)}
   end
 
   def handle_info(_, state), do: {:noreply, state}
@@ -107,6 +109,8 @@ defmodule Cluster.Strategy.DynamicSrv do
           end)
       end
 
+    Process.send_after(self(), :poll, polling_interval(state))
+
     %{state | :meta => new_nodelist}
   end
 
@@ -119,11 +123,15 @@ defmodule Cluster.Strategy.DynamicSrv do
         []
 
       [{_, _, _, _} | _] = resp ->
-        CLogger.debug(state.topology, "Found #{length(resp)} nodes")
         me = node()
 
         format_nodes(resp, service)
         |> Enum.filter(&(&1 != me))
+        |> tap(&CLogger.debug(state.topology, "Formatted nodes: #{inspect(&1)}"))
+
+      unexpected ->
+        CLogger.warn(state.topology, "Unexpected response from resolver: #{inspect(unexpected)}")
+        []
     end
   end
 
@@ -132,7 +140,7 @@ defmodule Cluster.Strategy.DynamicSrv do
   # In order for this to work, your SRV response should have the service name in it.
   # Example: `[{1,1,8001,~c"my-node.erl.service.consul"}]` -> `[:"my-node@erl.service.consul"]`
   defp format_nodes(srv_records, service) do
-    regex = ~r/^(?<node_name>[a-z0-9-_]+)\.#{service}$/i
+    regex = ~r/^(?<node_name>[a-z0-9_-]+)\.#{service}$/i
 
     Enum.map(srv_records, fn {_, _, _, host} ->
       case Regex.named_captures(regex, to_string(host)) do
