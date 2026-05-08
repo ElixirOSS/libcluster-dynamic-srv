@@ -1,0 +1,4 @@
+# Get all Erlang Versions: `asdf list all erlang`
+erlang 28.3.3
+# Get all Elixir Versions: `asdf list all elixir`
+elixir 1.19.5-otp-28
