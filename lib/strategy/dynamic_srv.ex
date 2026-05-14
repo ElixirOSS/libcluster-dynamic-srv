@@ -119,7 +119,7 @@ defmodule Cluster.Strategy.DynamicSrv do
 
     case resolver(state).(String.to_charlist(service)) do
       [] ->
-        CLogger.info(state.topology, "No nodes found")
+        CLogger.debug(state.topology, "No nodes found")
         []
 
       [{_, _, _, _} | _] = resp ->
