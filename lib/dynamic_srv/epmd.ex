@@ -145,8 +145,10 @@ defmodule DynamicSrv.Epmd do
     if String.match?(my_node, ~r/^((rpc|rem)-.*-)?#{target_node}$/) do
       {:ok, {127, 0, 0, 1}, local_dist_port(), @distro_version}
     else
-      {address, service_port} = get_remote_ip_and_port(target_node)
-      {:ok, address, service_port, @distro_version}
+      case get_remote_ip_and_port(target_node) do
+        {:ok, {address, service_port}} -> {:ok, address, service_port, @distro_version}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
@@ -183,12 +185,12 @@ defmodule DynamicSrv.Epmd do
   defp get_remote_ip_and_port(target_node) do
     target_node = String.to_charlist(target_node)
 
-    # Get the IP Address
-    {:ok, address} = :inet.getaddr(target_node, :inet)
-
-    # Get the Service Port
-    [{_, _, service_port, _host} | _rest] = :inet_res.lookup(target_node, :in, :srv, edns: 0)
-
-    {address, service_port}
+    with {:ok, address} <- :inet.getaddr(target_node, :inet),
+         [{_, _, service_port, _host} | _] <- :inet_res.lookup(target_node, :in, :srv, edns: 0) do
+      {:ok, {address, service_port}}
+    else
+      {:error, reason} -> {:error, reason}
+      [] -> {:error, :nxdomain}
+    end
   end
 end
