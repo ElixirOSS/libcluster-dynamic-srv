@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-06-12
+
+### Fixed
+
+- Enable EDNS(0) (`edns: 0`) on all `:inet_res.lookup/4` calls in both the clustering strategy and the EPMD module. Many modern DNS resolvers (e.g. Consul, CoreDNS) require EDNS(0) to return full SRV responses over UDP; without it, lookups could silently return empty or truncated results and cause cluster discovery failures.
+
 ## [1.0.1] - 2026-05-14
 
 ### Changed
@@ -63,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable resolver function for testing and custom DNS backends
 - MIT license
 
-[Unreleased]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.2...HEAD
+[1.0.2]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/0.1.4...1.0.0
 [0.1.4]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/0.1.3...0.1.4
