@@ -187,7 +187,7 @@ defmodule DynamicSrv.Epmd do
     {:ok, address} = :inet.getaddr(target_node, :inet)
 
     # Get the Service Port
-    [{_, _, service_port, _host} | _rest] = :inet_res.lookup(target_node, :in, :srv)
+    [{_, _, service_port, _host} | _rest] = :inet_res.lookup(target_node, :in, :srv, edns: 0)
 
     {address, service_port}
   end

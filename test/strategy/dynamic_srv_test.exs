@@ -205,6 +205,7 @@ defmodule Cluster.Strategy.DynamicSrvTest do
               service: @service,
               resolver: fn _query ->
                 node_name = me |> Atom.to_string() |> String.split("@") |> hd()
+
                 [
                   {1, 1, 8001, ~c"node-a.#{@service}"},
                   {1, 1, 8002, String.to_charlist("#{node_name}.#{@service}")}

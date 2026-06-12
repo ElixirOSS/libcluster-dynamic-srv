@@ -163,6 +163,6 @@ defmodule Cluster.Strategy.DynamicSrv do
   end
 
   defp resolver(%State{config: config}) do
-    Keyword.get(config, :resolver, &:inet_res.lookup(&1, :in, :srv))
+    Keyword.get(config, :resolver, &:inet_res.lookup(&1, :in, :srv, edns: 0))
   end
 end

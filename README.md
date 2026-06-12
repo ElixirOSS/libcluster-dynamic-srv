@@ -170,6 +170,12 @@ mutual TLS. The [example](./examples/app.nomad) does exactly this.
 
 ---
 
+## Misc Notes
+
+- **EDNS(0) is enabled by default.** Both the clustering strategy and the EPMD module pass `edns: 0` to `:inet_res.lookup/4`. This is required by many modern DNS resolvers (e.g. Consul, CoreDNS) to support larger UDP payloads needed for full SRV responses. Without it, lookups may return empty or truncated results, causing silent cluster discovery failures.
+
+---
+
 ## Limitations
 
 - Does not implement `names/1` (returns `{:error, :address}`) because no epmd process is running.
