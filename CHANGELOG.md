@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-06-15
+
+### Added
+
+- `disconnect_on_deregister` config option (default `true`). When set to `false`, nodes that disappear from DNS but still have a live distribution connection are left connected and only removed once the connection drops naturally. This prevents spurious `:global` partition-prevention cascades during graceful shutdowns that use a deregistration delay.
+
+### Fixed
+
+- `DynamicSrv.Epmd.address_please/3` now returns `{:error, reason}` instead of crashing when DNS resolution fails (e.g. `:nxdomain`). The distribution layer handles this as a failed connection attempt rather than a process crash.
+
 ## [1.0.2] - 2026-06-12
 
 ### Fixed
@@ -69,7 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable resolver function for testing and custom DNS backends
 - MIT license
 
-[Unreleased]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.2...HEAD
+[Unreleased]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.2...1.1.0
 [1.0.2]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/ElixirOSS/libcluster-dynamic-srv/compare/0.1.4...1.0.0
