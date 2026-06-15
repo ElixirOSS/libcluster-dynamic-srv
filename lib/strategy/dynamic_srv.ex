@@ -14,6 +14,17 @@ defmodule Cluster.Strategy.DynamicSrv do
   While this was implemented to work with Consul, it can be used with any DNS
   service that supports SRV records and tagging of the hostname.
 
+  ## Configuration
+
+  - `service` (required) — the DNS SRV service name to query.
+  - `polling_interval` (optional, default `5000`) — how often to poll DNS, in milliseconds.
+  - `disconnect_on_deregister` (optional, default `true`) — when `true`, nodes are
+    disconnected as soon as they disappear from DNS. When `false`, a node that has
+    left DNS but still has a live distribution connection is left connected; it will
+    only be disconnected once the connection drops naturally. Setting this to `false`
+    avoids spurious `:global` partition-prevention cascades during graceful shutdowns
+    that use a deregistration delay.
+
   Example Configuration:
 
   ```elixir
@@ -22,7 +33,8 @@ defmodule Cluster.Strategy.DynamicSrv do
       dyn_srv: [
         strategy: Cluster.Strategy.DynamicSrv,
         config: [
-          service: "my-service-name.service.consul"
+          service: "my-service-name.service.consul",
+          disconnect_on_deregister: false
         ]
       ]
     ]
@@ -73,7 +85,16 @@ defmodule Cluster.Strategy.DynamicSrv do
          } = state
        ) do
     new_nodelist = state |> get_nodes() |> MapSet.new()
-    removed = MapSet.difference(state.meta, new_nodelist)
+
+    removed =
+      MapSet.difference(state.meta, new_nodelist)
+      |> then(fn removed ->
+        if Keyword.get(state.config, :disconnect_on_deregister, true) do
+          removed
+        else
+          MapSet.filter(removed, fn node -> node not in Node.list() end)
+        end
+      end)
 
     new_nodelist =
       case Strategy.disconnect_nodes(
